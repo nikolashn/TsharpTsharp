@@ -35,6 +35,20 @@ block Lexer do
             end
             [] TOKEN_STRING append STRINGValue append -> STRINGArr
             Tokens STRINGArr append -> Tokens
+        elif char '"' == do
+            "" -> STRINGValue
+            call LexerAdvance
+            for true do
+                PROGRAM Index read -> char drop
+                if char '"' == do
+                    call LexerAdvance
+                    break
+                end
+                STRINGValue char + -> STRINGValue
+                call LexerAdvance
+            end
+            [] TOKEN_STRING append STRINGValue append -> STRINGArr
+            Tokens STRINGArr append -> Tokens
         elif char "+" == do
             [] TOKEN_PLUS append "+" append -> PLUSArr
             Tokens PLUSArr append -> Tokens
