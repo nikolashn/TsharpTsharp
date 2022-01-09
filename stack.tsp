@@ -7,12 +7,21 @@ block op_push do
     stack swap append -> stack
 end
 
+block op_puts do
+    if stack_len 0 == do
+        "Error: the stack is empty." print
+    else
+        stack len 1 - read puts drop
+        call op_drop
+    end
+end
+
 block op_print do
     if stack_len 0 == do
         "Error: the stack is empty." print
     else
-        stack len 1 - read print drop
-        call op_drop
+        call op_puts
+        "" print
     end
 end
 

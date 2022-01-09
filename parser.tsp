@@ -16,6 +16,9 @@ block parser_parse_id do
     elif parser_current_token_value "print" == do
         call op_print
         TOKEN_ID call ParserEat
+    elif parser_current_token_value "puts" == do
+        call op_puts
+        TOKEN_ID call ParserEat
     elif parser_current_token_value "swap" == do
         call op_swap
         TOKEN_ID call ParserEat
