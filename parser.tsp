@@ -22,6 +22,15 @@ block parser_parse_string do
     elif parser_current_token_value "drop" == do
         call op_drop
         TOKEN_ID call ParserEat
+    elif parser_current_token_value "over" == do
+        call op_over
+        TOKEN_ID call ParserEat
+    elif parser_current_token_value "dup" == do
+        call op_dup
+        TOKEN_ID call ParserEat
+    elif parser_current_token_value "printS" == do
+        call op_print_s
+        TOKEN_ID call ParserEat
     else
         "Syntax Error: unexpected token value '" parser_current_token_value + "'" + print
         exit

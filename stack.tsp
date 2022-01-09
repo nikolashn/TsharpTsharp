@@ -27,7 +27,7 @@ end
 
 block op_swap do
     if stack_len 2 < do
-        "Error: `swap` expected more than 2 elementes in stack." print
+        "Error: `swap` expected more than 2 elements in stack." print
     else
         stack len 1 - read -> first
         len 2 - read       -> second
@@ -38,3 +38,35 @@ block op_swap do
         second call op_push
     end
 end
+
+block op_dup do
+    if stack_len 1 < do
+        "Error: `dup` expected more than 1 element in stack." print
+    else
+        stack len 1 - read -> first
+        drop
+        first call op_push
+    end
+end
+
+block op_over do
+    if stack_len 2 < do
+        "Error: `over` expected more than 2 elements in stack." print
+    else
+        stack len 2 - read -> second
+        drop
+        second call op_push
+    end
+end
+
+block op_print_s do
+    "<" puts stack_len puts "> " puts
+    0 for dup stack_len < do
+        dup 1 + -> index
+        stack index 1 - read puts drop
+        inc
+        " " puts
+    end
+    "← top" print
+end
+
