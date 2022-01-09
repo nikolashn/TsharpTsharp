@@ -9,7 +9,7 @@ block ParserInit do
     drop
 end
 
-block parser_parse_string do
+block parser_parse_id do
     if parser_current_token_value "exit" == do
         TOKEN_ID call ParserEat
         exit
@@ -43,7 +43,7 @@ block Parser do
             parser_current_token_value call op_push
             TOKEN_STRING call ParserEat
         elif parser_current_token_type TOKEN_ID == do
-            call parser_parse_string
+            call parser_parse_id
         elif parser_current_token_type TOKEN_PLUS == do
             "Error: parsing `+` are not implemented." print
             TOKEN_PLUS call ParserEat
