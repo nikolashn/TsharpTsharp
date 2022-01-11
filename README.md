@@ -22,3 +22,7 @@ T# written in T#
 ```factor
 'aaa' 'bbb' drop print
 ```
+
+```factor
+'Hello ' World' + print
+```
