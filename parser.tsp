@@ -48,7 +48,7 @@ block Parser do
         elif parser_current_token_type TOKEN_ID == do
             call parser_parse_id
         elif parser_current_token_type TOKEN_PLUS == do
-            "Error: parsing `+` are not implemented." print
+            TOKEN_PLUS call op_binop
             TOKEN_PLUS call ParserEat
         elif parser_current_token_type TOKEN_MINUS == do
             "Error: parsing `-` are not implemented." print

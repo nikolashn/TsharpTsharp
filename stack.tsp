@@ -79,3 +79,35 @@ block op_print_s do
     "← top" print
 end
 
+block op_binop do
+    if stack_len 2 < do
+        "Error: `" puts
+        if TOKEN_PLUS == do
+            "+" puts
+        elif TOKEN_MINUS == do
+            "-" puts
+        elif TOKEN_MUL == do
+            "*" puts
+        elif TOKEN_DIV == do
+            "/" puts
+        end
+        "` expected more than 2 element in stack." print
+    else
+        if dup TOKEN_PLUS == do
+            stack len 1 - read -> first
+            len 2 - read       -> second
+            drop
+            drop
+            call op_drop
+            call op_drop
+            second
+            first
+            + -> sum
+            sum call op_push
+        else
+            "Error: unexpected token " swap + " not implemented yet." + print
+            exit
+        end
+    end
+end
+
