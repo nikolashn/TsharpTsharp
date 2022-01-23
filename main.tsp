@@ -1,24 +1,20 @@
-import "parser.tsp"
 import "lexer.tsp"
+import "parser.tsp"
 
-block Help do
-    "documentation: https://github.com/Tsharp-lang/Tsharp/blob/main/DOC/docs.md" print
-end
-
-block Main do
-    "T# interpreter" print
-    "Type 'help' for more information, 'exit' to quit." print
+block main do
     for true do
-        ">>> " puts input -> PROGRAM
-        if PROGRAM "help" == do
+        ">>> " puts input -> program
+        if program "help" == do
             call Help
         else
-            call Lexer
-            call ParserInit
-            call Parser
+            program
+            call lexer_init
+            call lexer
+            call parser_init
+            call parser
         end
     end
 end
 
-call Main
+call main
 

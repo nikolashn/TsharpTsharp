@@ -1,87 +1,75 @@
-import "token.tsp"
+import "tokens.tsp"
 
-block LexerInit do
-    PROGRAM len -> Length drop
-    0 -> Index
-    [] -> Tokens
+
+block lexer_init do
+    len -> program_length
+    0 -> lexer_index
+    {} -> lexer_tokens
 end
 
-block LexerAdvance do
-    Index inc -> Index
+block lexer_advance do
+    lexer_index inc -> lexer_index
 end
 
-block Lexer do
-    call LexerInit
+block lexer do
     for true do
-        if Index Length == do
-            [] TOKEN_EOF append "TOKEN_EOF" append -> EOFArr
-            Tokens EOFArr append -> Tokens
+        if lexer_index program_length == do
+            lexer_tokens { TOKEN_EOF "TOKEN_EOF" } append -> lexer_tokens
             break
         end
-        PROGRAM Index read -> char drop
-        if char " " == do
-            call LexerAdvance
-        elif char "'" == do
-            "" -> STRINGValue
-            call LexerAdvance
+        program lexer_index read -> lexer_char
+        if lexer_char " " == do
+            call lexer_advance
+        elif lexer_char "'" == do
+            call lexer_advance
+            "" -> lexer_string
             for true do
-                PROGRAM Index read -> char drop
-                if char "'" == do
-                    call LexerAdvance
+                program lexer_index read -> lexer_char
+                if lexer_char "'" == do
+                    call lexer_advance
                     break
                 end
-                STRINGValue char + -> STRINGValue
-                call LexerAdvance
+                lexer_string lexer_char + -> lexer_string
+                call lexer_advance
             end
-            [] TOKEN_STRING append STRINGValue append -> STRINGArr
-            Tokens STRINGArr append -> Tokens
-        elif char '"' == do
-            "" -> STRINGValue
-            call LexerAdvance
-            for true do
-                PROGRAM Index read -> char drop
-                if char '"' == do
-                    call LexerAdvance
-                    break
-                end
-                STRINGValue char + -> STRINGValue
-                call LexerAdvance
+            lexer_tokens { TOKEN_STRING lexer_string } append -> lexer_tokens
+        elif lexer_char "+" == do
+            lexer_tokens { TOKEN_PLUS "+" } append -> lexer_tokens
+            call lexer_advance
+        elif lexer_char "-" == do
+            call lexer_advance
+            program lexer_index read -> lexer_peak
+            if lexer_peak ">" == do
+                call lexer_advance
+                lexer_tokens { TOKEN_EQUALS "->" } append -> lexer_tokens
+            else
+                lexer_tokens { TOKEN_MINUS "-" } append -> lexer_tokens
             end
-            [] TOKEN_STRING append STRINGValue append -> STRINGArr
-            Tokens STRINGArr append -> Tokens
-        elif char "+" == do
-            [] TOKEN_PLUS append "+" append -> PLUSArr
-            Tokens PLUSArr append -> Tokens
-            call LexerAdvance
-        elif char "-" == do
-            [] TOKEN_MINUS append "-" append -> MINUSArr
-            Tokens MINUSArr append -> Tokens
-            call LexerAdvance
-        elif char "*" == do
-            [] TOKEN_MUL append "*" append -> MULArr
-            Tokens MULArr append -> Tokens
-            call LexerAdvance
-        elif char "/" == do
-            [] TOKEN_DIV append "/" append -> DIVArr
-            Tokens DIVArr append -> Tokens
-            call LexerAdvance
+        elif lexer_char "*" == do
+            lexer_tokens { TOKEN_MUL "*" } append -> lexer_tokens
+            call lexer_advance
+        elif lexer_char "/" == do
+            lexer_tokens { TOKEN_DIV "/" } append -> lexer_tokens
+            call lexer_advance
+        elif lexer_char "%" == do
+            lexer_tokens { TOKEN_REM "%" } append -> lexer_tokens
+            call lexer_advance
         else
-            "" -> IDValue
-            IDValue char + -> IDValue
-            call LexerAdvance
+            "" -> lexer_id
+            lexer_id lexer_char + -> lexer_id
+            call lexer_advance
             for true do
-                if Index Length == do
+                if lexer_index program_length == do
                     break
                 end
-                PROGRAM Index read -> char drop
-                if char " " == do
+                program lexer_index read -> lexer_char
+                if lexer_char " " == do
                     break
                 end
-                IDValue char + -> IDValue
-                call LexerAdvance
+                lexer_id lexer_char + -> lexer_id
+                call lexer_advance
             end
-            [] TOKEN_ID append IDValue append -> IDArr
-            Tokens IDArr append -> Tokens
+            lexer_tokens { TOKEN_ID lexer_id } append -> lexer_tokens
         end
     end
 end
