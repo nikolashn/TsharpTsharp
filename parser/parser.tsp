@@ -21,17 +21,11 @@ end
 block parser do
     for true do
         if parser_current_token_type TOKEN_STRING == do
-            false assert "parsing strings are not implemented."
+            false assert "strings is not implemented."
         elif parser_current_token_type TOKEN_ID == do
-            false assert "parsing identifier are not implemented."
-        elif parser_current_token_type TOKEN_PLUS == do
-            false assert "parsing `+` are not implemented."
-        elif parser_current_token_type TOKEN_MINUS == do
-           false assert "parsing `-` are not implemented."
-        elif parser_current_token_type TOKEN_MUL == do
-            false assert "parsing `*` are not implemented."
-        elif parser_current_token_type TOKEN_DIV == do
-            false assert "parsing `/` are not implemented."
+            false assert "identifier is not implemented."
+        elif parser_current_token_type { TOKEN_PLUS TOKEN_MINUS TOKEN_MUL TOKEN_DIV } in == do
+            false assert "binary operation is not implemented."
         elif parser_current_token_type TOKEN_EOF == do
             break
         else
