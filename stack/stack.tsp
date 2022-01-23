@@ -1,5 +1,5 @@
 
-block stack do
+block stack_init do
     {} -> stack
     0 -> stack_length
 end
