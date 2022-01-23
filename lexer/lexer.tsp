@@ -1,4 +1,4 @@
-import "tokens.tsp"
+import "tokens/tokens.tsp"
 
 
 block lexer_init do

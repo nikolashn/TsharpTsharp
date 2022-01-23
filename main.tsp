@@ -1,5 +1,5 @@
-import "lexer.tsp"
-import "parser.tsp"
+import "lexer/lexer.tsp"
+import "parser/parser.tsp"
 
 block main do
     for true do
