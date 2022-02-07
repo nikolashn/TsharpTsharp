@@ -6,6 +6,14 @@ T# written in T#
 
 
 ## Usage
+```python
+# file main.tsp
+
+10 20 + print
+
+```
+
+
 ```
 $ ./main tsharp.tsp
 
