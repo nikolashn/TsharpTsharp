@@ -17,9 +17,11 @@ T# written in T#
 ```
 $ ./main tsharp.tsp
 
-$ nasm -f macho64 main.asm
+$ nasm -f macho64 tsharp.asm
 
-$ ld main.o -o main -macosx_version_min 11.4 -L /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib -lSystem
+$ ld tsharp.o -o tsharp -macosx_version_min 11.4 -L /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib -lSystem
+
+$ ./tsharp
 ```
 
 ## Contributing

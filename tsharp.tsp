@@ -167,7 +167,7 @@ end
 # ------ generate ASM  ------
 # ---------------------------
 
-"main.asm" fopen -> F
+"tsharp.asm" fopen -> F
 F ftruncate
 0 -> parser_index
 0 -> parser_current_token_type
