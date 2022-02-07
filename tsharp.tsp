@@ -166,7 +166,7 @@ block lexer do
     end
 end
 
-block cross_reference_if_body do
+block parse do
     {} -> addr_stack
     lexer_tokens len -> length
     0 for dup length < do -> i
@@ -353,7 +353,7 @@ block main do
 
     lexer
 
-    cross_reference_if_body
+    parse
 
     lexer_tokens asm_gen
 
