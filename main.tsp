@@ -152,7 +152,7 @@ end
 
 block parser_eat do
     if parser_current_token_type != do
-        "Syntax Error: unexpected token value '" parser_current_token_value + "'" + print
+        "Syntax Error: unexpected token value '" parser_current_token_value + "'" + println
         exit
     end
     parser_index inc -> parser_index
@@ -215,6 +215,7 @@ block parser do
     "global start\n\n" F fwrite
 
     "_main:\n" F fwrite
+
     for true do
         if parser_current_token_type TOKEN_ID == do
             if parser_current_token_value "print" == do
@@ -234,10 +235,31 @@ block parser do
             "    add    rbx, rax\n" F fwrite
             "    push   rbx\n\n" F fwrite
             TOKEN_PLUS parser_eat
+        elif parser_current_token_type TOKEN_MINUS == do
+            "    ; -- subtract --\n" F fwrite
+            "    pop    rax\n" F fwrite
+            "    pop    rbx\n" F fwrite
+            "    sub    rbx, rax\n" F fwrite
+            "    push   rbx\n\n" F fwrite
+            TOKEN_MINUS parser_eat
+        elif parser_current_token_type TOKEN_MUL == do
+            "    ; -- subtract --\n" F fwrite
+            "    pop    rax\n" F fwrite
+            "    pop    rbx\n" F fwrite
+            "    mul    rbx, rax\n" F fwrite
+            "    push   rbx\n\n" F fwrite
+            TOKEN_MUL parser_eat
+        elif parser_current_token_type TOKEN_DIV == do
+            "    ; -- subtract --\n" F fwrite
+            "    pop    rax\n" F fwrite
+            "    pop    rbx\n" F fwrite
+            "    div    rbx, rax\n" F fwrite
+            "    push   rbx\n\n" F fwrite
+            TOKEN_DIV parser_eat
         elif parser_current_token_type TOKEN_EOF == do
             break
         else
-            "Syntax Error: unexpected token value '" parser_current_token_value + "'" + print
+            "Syntax Error: unexpected token value '" parser_current_token_value + "'" + println
             exit
         end
     end
@@ -251,7 +273,8 @@ end
 # ------ main ------
 # ------------------
 
-"34 35 + print" -> program
+"34 35 + 1 - print" -> program
+
 block main do
     program lexer_init
     lexer
