@@ -223,6 +223,8 @@ block parser do
                 "    pop rdi\n" F fwrite
                 "    call print\n\n" F fwrite
                 TOKEN_ID parser_eat
+            else
+                false assert "unreachable"
             end
         elif parser_current_token_type TOKEN_INT == do
             "    ; -- push --\n" F fwrite
