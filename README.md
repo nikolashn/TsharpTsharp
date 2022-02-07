@@ -11,6 +11,10 @@ T# written in T#
 
 10 20 + print
 
+10 10 == if
+    100 print
+end
+
 ```
 
 
