@@ -273,7 +273,7 @@ end
 # ------ main ------
 # ------------------
 
-"34 35 + 1 - print" -> program
+"34 35 + print" -> program
 
 block main do
     program lexer_init
