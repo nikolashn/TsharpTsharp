@@ -142,6 +142,7 @@ end
 0 -> parser_index
 0 -> parser_current_token_type
 0 -> parser_current_token_value
+0 -> stack_size
 
 block init_parser do
     0 -> parser_index
@@ -160,6 +161,14 @@ block parser_eat do
     lexer_tokens parser_index read dup
     0 read -> parser_current_token_type
     1 read -> parser_current_token_value
+end
+
+block inc_stack_size do
+    stack_size 1 + -> stack_size # decrement the stack size.
+end
+
+block dec_stack_size do
+    stack_size 1 - -> stack_size # decrement the stack size.
 end
 
 block parser do
@@ -219,6 +228,11 @@ block parser do
     for true do
         if parser_current_token_type TOKEN_ID == do
             if parser_current_token_value "print" == do
+                if stack_size 1 < do
+                    "Error: `print` expected at least one element on the stack." println
+                    exit
+                end
+                dec_stack_size
                 "    ; -- print --\n" F fwrite
                 "    pop rdi\n" F fwrite
                 "    call print\n\n" F fwrite
@@ -227,10 +241,16 @@ block parser do
                 false assert "unreachable"
             end
         elif parser_current_token_type TOKEN_INT == do
+            inc_stack_size
             "    ; -- push --\n" F fwrite
             "    push  " F fwrite parser_current_token_value "\n\n" + F fwrite
             TOKEN_INT parser_eat
         elif parser_current_token_type TOKEN_PLUS == do
+            if stack_size 2 < do
+                "Error: `+` expected at least two <int> type element on the stack." println
+                exit
+            end
+            dec_stack_size
             "    ; -- plus --\n" F fwrite
             "    pop    rax\n" F fwrite
             "    pop    rbx\n" F fwrite
@@ -238,6 +258,11 @@ block parser do
             "    push   rbx\n\n" F fwrite
             TOKEN_PLUS parser_eat
         elif parser_current_token_type TOKEN_MINUS == do
+            if stack_size 2 < do
+                "Error: `-` expected at least two <int> type element on the stack." println
+                exit
+            end
+            dec_stack_size
             "    ; -- subtract --\n" F fwrite
             "    pop    rax\n" F fwrite
             "    pop    rbx\n" F fwrite
@@ -245,19 +270,9 @@ block parser do
             "    push   rbx\n\n" F fwrite
             TOKEN_MINUS parser_eat
         elif parser_current_token_type TOKEN_MUL == do
-            "    ; -- subtract --\n" F fwrite
-            "    pop    rax\n" F fwrite
-            "    pop    rbx\n" F fwrite
-            "    mul    rbx, rax\n" F fwrite
-            "    push   rbx\n\n" F fwrite
-            TOKEN_MUL parser_eat
+            false assert "not implemented yet"
         elif parser_current_token_type TOKEN_DIV == do
-            "    ; -- subtract --\n" F fwrite
-            "    pop    rax\n" F fwrite
-            "    pop    rbx\n" F fwrite
-            "    div    rbx, rax\n" F fwrite
-            "    push   rbx\n\n" F fwrite
-            TOKEN_DIV parser_eat
+            false assert "not implemented yet"
         elif parser_current_token_type TOKEN_EOF == do
             break
         else
@@ -283,6 +298,10 @@ block main do
     init_parser
     parser
     F fclose # close file
+    if stack_size 0 != do
+        "Error: unhandled <int> type element on the stack." println
+        exit
+    end
 end
 
 main
