@@ -163,8 +163,6 @@ block parser_eat do
 end
 
 block parser do
-    "main.asm" fopen -> F
-
     "GLOBAL _main\n\n" F fwrite
 
     "section .text\n\n" F fwrite
