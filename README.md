@@ -7,7 +7,7 @@ T# written in T#
 
 ## Usage
 ```
-$ ./main main.tsp
+$ ./main tsharp.tsp
 
 $ nasm -f macho64 main.asm
 
