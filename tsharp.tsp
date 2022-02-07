@@ -24,16 +24,17 @@ block enum do
 end
 
 true
-enum -> TOKEN_INT
-enum -> TOKEN_ID
-enum -> TOKEN_PLUS
-enum -> TOKEN_MINUS
-enum -> TOKEN_MUL
-enum -> TOKEN_DIV
-enum -> TOKEN_REM
-enum -> TOKEN_EQUALS
-enum -> TOKEN_IS_EQUALS
-enum -> TOKEN_EOF
+enum -> OP_INT
+enum -> OP_PRINT
+enum -> OP_PLUS
+enum -> OP_MINUS
+enum -> OP_MUL
+enum -> OP_DIV
+enum -> OP_EQUALS
+enum -> OP_IS_EQUALS
+enum -> OP_IF
+enum -> OP_END
+enum -> OP_EOF
 
 # ---------------
 # ---- lexer ----
@@ -59,7 +60,7 @@ end
 block lexer do
     for true do
         if lexer_index program_length == do
-            lexer_tokens { TOKEN_EOF "TOKEN_EOF" } append -> lexer_tokens
+            lexer_tokens { OP_EOF "OP_EOF" } append -> lexer_tokens
             break
         end
         program lexer_index read -> lexer_char
@@ -91,36 +92,33 @@ block lexer do
                 end
             end
         elif lexer_char "+" == do
-            lexer_tokens { TOKEN_PLUS "+" } append -> lexer_tokens
+            lexer_tokens { OP_PLUS "+" } append -> lexer_tokens
             lexer_advance
         elif lexer_char "-" == do
             lexer_advance
             program lexer_index read -> lexer_peak
             if lexer_peak ">" == do
                 lexer_advance
-                lexer_tokens { TOKEN_EQUALS "->" } append -> lexer_tokens
+                lexer_tokens { OP_EQUALS "->" } append -> lexer_tokens
             else
-                lexer_tokens { TOKEN_MINUS "-" } append -> lexer_tokens
+                lexer_tokens { OP_MINUS "-" } append -> lexer_tokens
             end
         elif lexer_char "=" == do
             lexer_advance
             program lexer_index read -> lexer_peak
             if lexer_peak "=" == do
                 lexer_advance
-                lexer_tokens { TOKEN_IS_EQUALS "==" } append -> lexer_tokens
+                lexer_tokens { OP_IS_EQUALS "==" } append -> lexer_tokens
             else
                 # TODO: write error message.
                 "SyntaxError:" print lexer_line print ":" print lexer_col print ": unexpected token..." println
                 exit
             end
         elif lexer_char "*" == do
-            lexer_tokens { TOKEN_MUL "*" } append -> lexer_tokens
+            lexer_tokens { OP_MUL "*" } append -> lexer_tokens
             lexer_advance
         elif lexer_char "/" == do
-            lexer_tokens { TOKEN_DIV "/" } append -> lexer_tokens
-            lexer_advance
-        elif lexer_char "%" == do
-            lexer_tokens { TOKEN_REM "%" } append -> lexer_tokens
+            lexer_tokens { OP_DIV "/" } append -> lexer_tokens
             lexer_advance
         elif lexer_char isdigit do
             "" -> lexer_int
@@ -139,7 +137,7 @@ block lexer do
                 lexer_int lexer_char + -> lexer_int
                 lexer_advance
             end
-            lexer_tokens { TOKEN_INT lexer_int } append -> lexer_tokens
+            lexer_tokens { OP_INT lexer_int } append -> lexer_tokens
         else
             "" -> lexer_id
             lexer_id lexer_char + -> lexer_id
@@ -157,11 +155,32 @@ block lexer do
                 lexer_id lexer_char + -> lexer_id
                 lexer_advance
             end
-            lexer_tokens { TOKEN_ID lexer_id } append -> lexer_tokens
+            if lexer_id "print" == do
+                lexer_tokens { OP_PRINT lexer_id } append -> lexer_tokens
+            elif lexer_id "if" == do
+                lexer_tokens { OP_IF lexer_id } append -> lexer_tokens
+            elif lexer_id "end" == do
+                lexer_tokens { OP_END lexer_id } append -> lexer_tokens
+            end
         end
     end
 end
 
+block cross_reference_if_body do
+    {} -> addr_stack
+    lexer_tokens len -> length
+    0 for dup length < do -> i
+        lexer_tokens i read -> op
+        if op 0 read OP_IF == do
+            addr_stack i append -> addr_stack
+        elif op 0 read OP_END == do
+            addr_stack addr_stack len 1 - read -> if_addr
+            addr_stack addr_stack len 1 - remove -> addr_stack
+            lexer_tokens { OP_IF "if" i } if_addr replace -> lexer_tokens
+        end
+        i inc
+    end drop
+end
 
 # ---------------------------
 # ------ generate ASM  ------
@@ -169,29 +188,7 @@ end
 
 "tsharp.asm" fopen -> F
 F ftruncate
-0 -> parser_index
-0 -> parser_current_token_type
-0 -> parser_current_token_value
 0 -> stack_size
-
-block init_parser do
-    0 -> parser_index
-    lexer_tokens parser_index read dup
-    0 read -> parser_current_token_type
-    1 read -> parser_current_token_value
-end
-
-block parser_eat do
-    if parser_current_token_type != do
-        "Syntax Error: unexpected token value '" parser_current_token_value + "'" + println
-        exit
-    end
-    parser_index inc -> parser_index
-
-    lexer_tokens parser_index read dup
-    0 read -> parser_current_token_type
-    1 read -> parser_current_token_value
-end
 
 block inc_stack_size do
     stack_size 1 + -> stack_size # decrement the stack size.
@@ -201,7 +198,8 @@ block dec_stack_size do
     stack_size 1 - -> stack_size # decrement the stack size.
 end
 
-block parser do
+block asm_gen do -> lexer_tokens
+
     "GLOBAL _main\n\n" F fwrite
 
     "section .text\n\n" F fwrite
@@ -255,27 +253,36 @@ block parser do
 
     "_main:\n" F fwrite
 
-    for true do
-        if parser_current_token_type TOKEN_ID == do
-            if parser_current_token_value "print" == do
-                if stack_size 1 < do
-                    "Error: `print` expected at least one element on the stack." println
-                    exit
-                end
-                dec_stack_size
-                "    ; -- print --\n" F fwrite
-                "    pop rdi\n" F fwrite
-                "    call print\n\n" F fwrite
-                TOKEN_ID parser_eat
-            else
-                false assert "unreachable"
+    lexer_tokens len -> length 
+
+    0 for dup length < do -> i
+        lexer_tokens i read -> op
+        op 0 read -> op_type
+        op 1 read -> op_value
+
+        if op_type OP_PRINT == do
+            if stack_size 1 < do
+                "Error: `print` expected at least one element on the stack." println
+                exit
             end
-        elif parser_current_token_type TOKEN_INT == do
+            dec_stack_size
+            "    ; -- print --\n" F fwrite
+            "    pop rdi\n" F fwrite
+            "    call print\n\n" F fwrite
+        elif op_type OP_IF == do
+            dec_stack_size
+            op 2 read -> jmp_adrr
+            "    ; -- if --\n" F fwrite
+            "    pop rax\n" F fwrite
+            "    test rax, rax\n" F fwrite
+            "    jz addr_" jmp_adrr itoa "\n\n" + + F fwrite
+        elif op_type OP_END == do
+            "addr_" i itoa ":" "\n\n" + + + F fwrite
+        elif op_type OP_INT == do
             inc_stack_size
             "    ; -- push --\n" F fwrite
-            "    push  " F fwrite parser_current_token_value "\n\n" + F fwrite
-            TOKEN_INT parser_eat
-        elif parser_current_token_type TOKEN_PLUS == do
+            "    push  " F fwrite op_value "\n\n" + F fwrite
+        elif op_type OP_PLUS == do
             if stack_size 2 < do
                 "Error: `+` expected at least two <int> type element on the stack." println
                 exit
@@ -286,8 +293,7 @@ block parser do
             "    pop    rbx\n" F fwrite
             "    add    rbx, rax\n" F fwrite
             "    push   rbx\n\n" F fwrite
-            TOKEN_PLUS parser_eat
-        elif parser_current_token_type TOKEN_MINUS == do
+        elif op_type OP_MINUS == do
             if stack_size 2 < do
                 "Error: `-` expected at least two <int> type element on the stack." println
                 exit
@@ -298,12 +304,11 @@ block parser do
             "    pop    rbx\n" F fwrite
             "    sub    rbx, rax\n" F fwrite
             "    push   rbx\n\n" F fwrite
-            TOKEN_MINUS parser_eat
-        elif parser_current_token_type TOKEN_MUL == do
+        elif op_type OP_MUL == do
             false assert "not implemented yet"
-        elif parser_current_token_type TOKEN_DIV == do
+        elif op_type OP_DIV == do
             false assert "not implemented yet"
-        elif parser_current_token_type TOKEN_IS_EQUALS == do
+        elif op_type OP_IS_EQUALS == do
             if stack_size 2 < do
                 "Error: `==` expected at least two <int> type element on the stack." println
                 exit
@@ -318,14 +323,14 @@ block parser do
             "    cmp r12, rax\n" F fwrite
             "    cmove rcx, rdx\n" F fwrite
             "    push rcx\n\n" F fwrite
-            TOKEN_IS_EQUALS parser_eat
-        elif parser_current_token_type TOKEN_EOF == do
+        elif op_type OP_EOF == do
             break
         else
-            "Syntax Error: unexpected token value '" parser_current_token_value + "'" + println
+            "Syntax Error: unexpected token value '" op_value + "'" + println
             exit
         end
-    end
+        i inc
+    end drop
     "    mov    rax, 0x2000001 ; exit\n" F fwrite
     "    mov    rdi, 0\n" F fwrite
     "    syscall\n" F fwrite
@@ -339,15 +344,24 @@ end
 "" -> program
 
 block main do
+    # read program from file
     "main.tsp" fopen -> ProgramF
     ProgramF fread -> program
     ProgramF fclose
 
     program lexer_init
+
     lexer
-    init_parser
-    parser
+
+    cross_reference_if_body
+
+    lexer_tokens asm_gen
+
     F fclose # close file
+    
+    free
+
+    # check for unhandled data
     if stack_size 0 > do
         "Error: unhandled <int> type element on the stack." println
         exit
