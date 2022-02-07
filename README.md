@@ -1,4 +1,4 @@
-programming language written in T# 
+# Programming language
 
 [The T# Programming Language](https://github.com/Tsharp-lang/Tsharp)
 
