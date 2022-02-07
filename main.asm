@@ -51,10 +51,10 @@ global start
 
 _main:
     ; -- push --
-    push  34
+    push  10
 
     ; -- push --
-    push  35
+    push  20
 
     ; -- plus --
     pop    rax
