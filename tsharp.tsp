@@ -198,7 +198,6 @@ block parse do
                 lexer_tokens { OP_END "end" lexer_tokens block_adrr read 2 read } i replace -> lexer_tokens
                 lexer_tokens { OP_DO "do" i 1 + } block_adrr replace -> lexer_tokens
             end
-            # lexer_tokens { OP_IF "if" i } if_addr replace -> lexer_tokens
         elif op 0 read OP_FOR == do
             addr_stack i append -> addr_stack            
         elif op 0 read OP_DO == do

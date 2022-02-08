@@ -50,22 +50,65 @@ print:
 global start
 
 _main:
+addr_0:
     ; -- push --
-    push  10
+    push  0
 
+addr_1:
+    ; -- for --
+addr_2:
+    ; -- dup ----
+    pop rax
+    push rax
+    push rax
+
+addr_3:
     ; -- push --
-    push  20
+    push  100
 
+addr_4:
+    ; -- less than --
+    mov rcx, 0
+    mov rdx, 1
+    pop rax
+    pop r12
+    cmp r12, rax
+    cmovl rcx, rdx
+    push rcx
+
+addr_5:
+    ; -- do --
+    pop rax
+    test rax, rax
+    jz addr_11
+
+addr_6:
+    ; -- dup ----
+    pop rax
+    push rax
+    push rax
+
+addr_7:
+    ; -- print --
+    pop rdi
+    call print
+
+addr_8:
+    ; -- push --
+    push  1
+
+addr_9:
     ; -- plus --
     pop    rax
     pop    rbx
     add    rbx, rax
     push   rbx
 
-    ; -- print --
-    pop rdi
-    call print
+addr_10:
+    ; -- end --
+    jmp addr_1
 
+addr_11:
     mov    rax, 0x2000001 ; exit
     mov    rdi, 0
     syscall
