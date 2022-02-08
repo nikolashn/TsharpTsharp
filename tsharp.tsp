@@ -26,6 +26,7 @@ end
 true
 enum -> OP_INT
 enum -> OP_PRINT
+enum -> OP_DUP
 enum -> OP_PLUS
 enum -> OP_MINUS
 enum -> OP_MUL
@@ -164,6 +165,10 @@ block lexer do
                 lexer_tokens { OP_END lexer_id } append -> lexer_tokens
             elif lexer_id "else" == do
                 lexer_tokens { OP_ELSE lexer_id } append -> lexer_tokens
+            elif lexer_id "dup" == do
+                lexer_tokens { OP_DUP lexer_id } append -> lexer_tokens
+            else
+                false assert "unexpected value"
             end
         end
     end
@@ -281,6 +286,16 @@ block asm_gen do -> lexer_tokens
             "    ; -- print --\n" F fwrite
             "    pop rdi\n" F fwrite
             "    call print\n\n" F fwrite
+        elif op_type OP_DUP == do
+            if stack_size 1 < do
+                "Error: `dup` expected at least one element on the stack." println
+                exit
+            end
+            inc_stack_size
+            "    ; -- dup ----\n" F fwrite
+            "    pop rax\n" F fwrite
+            "    push rax\n" F fwrite
+            "    push rax\n\n" F fwrite
         elif op_type OP_IF == do
             dec_stack_size
             op 2 read -> jmp_adrr
