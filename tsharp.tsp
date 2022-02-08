@@ -38,6 +38,8 @@ enum -> OP_GREATER_THAN
 enum -> OP_IF
 enum -> OP_END
 enum -> OP_ELSE
+enum -> OP_FOR
+enum -> OP_DO
 enum -> OP_EOF
 
 # ---------------
@@ -162,6 +164,10 @@ block lexer do
                 lexer_tokens { OP_ELSE lexer_id } append -> lexer_tokens
             elif lexer_id "dup" == do
                 lexer_tokens { OP_DUP lexer_id } append -> lexer_tokens
+            elif lexer_id "for" == do
+                lexer_tokens { OP_FOR lexer_id } append -> lexer_tokens
+            elif lexer_id "do" == do
+                lexer_tokens { OP_DO lexer_id } append -> lexer_tokens
             else
                 false assert "unexpected value"
             end
@@ -187,8 +193,19 @@ block parse do
 
             if lexer_tokens block_adrr read 0 read OP_IF == lexer_tokens block_adrr read 0 read OP_ELSE == || do
                 lexer_tokens { lexer_tokens block_adrr read 0 read lexer_tokens block_adrr read 1 read i } block_adrr replace -> lexer_tokens
+                lexer_tokens { OP_END "end" i 1 + } i replace -> lexer_tokens
+            elif lexer_tokens block_adrr read 0 read OP_DO == do
+                lexer_tokens { OP_END "end" lexer_tokens block_adrr read 2 read } i replace -> lexer_tokens
+                lexer_tokens { OP_DO "do" i 1 + } block_adrr replace -> lexer_tokens
             end
             # lexer_tokens { OP_IF "if" i } if_addr replace -> lexer_tokens
+        elif op 0 read OP_FOR == do
+            addr_stack i append -> addr_stack            
+        elif op 0 read OP_DO == do
+            addr_stack addr_stack len 1 - read -> for_adrr
+            addr_stack addr_stack len 1 - remove -> addr_stack
+            lexer_tokens { OP_DO "do" for_adrr } i replace -> lexer_tokens
+            addr_stack i append -> addr_stack
         end
         i inc
     end drop
@@ -268,6 +285,8 @@ block asm_gen do -> lexer_tokens
     lexer_tokens len -> length 
 
     0 for dup length < do -> i
+        "addr_" i itoa ":" "\n" + + + F fwrite
+
         lexer_tokens i read -> op
         op 0 read -> op_type
         op 1 read -> op_value
@@ -302,9 +321,22 @@ block asm_gen do -> lexer_tokens
             op 2 read -> jmp_adrr
             "    ; -- else --\n" F fwrite
             "    jmp addr_" jmp_adrr itoa "\n\n" + + F fwrite
-            "addr_" i 1 + itoa ":" "\n\n" + + + F fwrite
+            # "addr_" i 1 + itoa ":" "\n\n" + + + F fwrite
         elif op_type OP_END == do
-            "addr_" i itoa ":" "\n\n" + + + F fwrite
+            op 2 read -> jmp_adrr
+            if i 1 + jmp_adrr != do
+                "    ; -- end --\n" F fwrite
+                "    jmp addr_" jmp_adrr itoa "\n\n" + + F fwrite
+            end
+        elif op_type OP_FOR == do
+            "    ; -- for --\n" F fwrite
+        elif op_type OP_DO == do
+            dec_stack_size
+            op 2 read -> jmp_adrr
+            "    ; -- do --\n" F fwrite
+            "    pop rax\n" F fwrite
+            "    test rax, rax\n" F fwrite
+            "    jz addr_" jmp_adrr itoa "\n\n" + + F fwrite
         elif op_type OP_INT == do
             inc_stack_size
             "    ; -- push --\n" F fwrite
@@ -417,10 +449,10 @@ block main do
     free
 
     # check for unhandled data
-    if stack_size 0 > do
-        "Error: unhandled <int> type element on the stack." println
-        exit
-    end
+    #if stack_size 0 > do
+    #    "Error: unhandled <int> type element on the stack." println
+    #    exit
+    #end
 end
 
 main
