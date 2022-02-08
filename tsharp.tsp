@@ -33,6 +33,8 @@ enum -> OP_MUL
 enum -> OP_DIV
 enum -> OP_EQUALS
 enum -> OP_IS_EQUALS
+enum -> OP_LESS_THAN
+enum -> OP_GREATER_THAN
 enum -> OP_IF
 enum -> OP_END
 enum -> OP_ELSE
@@ -72,19 +74,12 @@ block lexer do
             lexer_line inc -> lexer_line
             0 -> lexer_col
             lexer_advance
-        elif lexer_char "'" == do
+        elif lexer_char "<" == do
+            lexer_tokens { OP_LESS_THAN "<" } append -> lexer_tokens
             lexer_advance
-            "" -> lexer_string
-            for true do
-                program lexer_index read -> lexer_char
-                if lexer_char "'" == do
-                    lexer_advance
-                    break
-                end
-                lexer_string lexer_char + -> lexer_string
-                lexer_advance
-            end
-            lexer_tokens { TOKEN_STRING lexer_string } append -> lexer_tokens
+        elif lexer_char ">" == do
+            lexer_tokens { OP_GREATER_THAN ">" } append -> lexer_tokens
+            lexer_advance
         elif lexer_char "#" == do
             for true do
                 lexer_advance
@@ -314,6 +309,34 @@ block asm_gen do -> lexer_tokens
             inc_stack_size
             "    ; -- push --\n" F fwrite
             "    push  " F fwrite op_value "\n\n" + F fwrite
+        elif op_type OP_LESS_THAN == do
+            if stack_size 2 < do
+                "Error: `<` expected at least two <int> type element on the stack." println
+                exit
+            end
+            dec_stack_size
+            "    ; -- less than --\n" F fwrite
+            "    mov rcx, 0\n" F fwrite
+            "    mov rdx, 1\n" F fwrite
+            "    pop rax\n" F fwrite
+            "    pop r12\n" F fwrite
+            "    cmp r12, rax\n" F fwrite
+            "    cmovl rcx, rdx\n" F fwrite
+            "    push rcx\n\n" F fwrite
+        elif op_type OP_GREATER_THAN == do
+            if stack_size 2 < do
+                "Error: `>` expected at least two <int> type element on the stack." println
+                exit
+            end
+            dec_stack_size
+            "    ; -- greater than --\n" F fwrite
+            "    mov rcx, 0\n" F fwrite
+            "    mov rdx, 1\n" F fwrite
+            "    pop rax\n" F fwrite
+            "    pop r12\n" F fwrite
+            "    cmp r12, rax\n" F fwrite
+            "    cmovg rcx, rdx\n" F fwrite
+            "    push rcx\n\n" F fwrite
         elif op_type OP_PLUS == do
             if stack_size 2 < do
                 "Error: `+` expected at least two <int> type element on the stack." println
