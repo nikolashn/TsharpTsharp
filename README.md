@@ -48,7 +48,6 @@ end
 - [ ] Implement function calls
 - [ ] Implement multiplication (arithmetic)
 - [ ] Implement division (arithmetic)
-- [ ] Implement while-loops
 - [ ] Implement main method
 - [ ] Implement arrays
 
