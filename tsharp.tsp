@@ -34,6 +34,7 @@ enum -> OP_EQUALS
 enum -> OP_IS_EQUALS
 enum -> OP_IF
 enum -> OP_END
+enum -> OP_ELSE
 enum -> OP_EOF
 
 # ---------------
@@ -161,6 +162,8 @@ block lexer do
                 lexer_tokens { OP_IF lexer_id } append -> lexer_tokens
             elif lexer_id "end" == do
                 lexer_tokens { OP_END lexer_id } append -> lexer_tokens
+            elif lexer_id "else" == do
+                lexer_tokens { OP_ELSE lexer_id } append -> lexer_tokens
             end
         end
     end
@@ -173,10 +176,19 @@ block parse do
         lexer_tokens i read -> op
         if op 0 read OP_IF == do
             addr_stack i append -> addr_stack
-        elif op 0 read OP_END == do
+        elif op 0 read OP_ELSE == do
             addr_stack addr_stack len 1 - read -> if_addr
             addr_stack addr_stack len 1 - remove -> addr_stack
-            lexer_tokens { OP_IF "if" i } if_addr replace -> lexer_tokens
+            lexer_tokens { OP_IF "if" i 1 + } if_addr replace -> lexer_tokens
+            addr_stack i append -> addr_stack
+        elif op 0 read OP_END == do
+            addr_stack addr_stack len 1 - read -> block_adrr
+            addr_stack addr_stack len 1 - remove -> addr_stack
+
+            if lexer_tokens block_adrr read 0 read OP_IF == lexer_tokens block_adrr read 0 read OP_ELSE == || do
+                lexer_tokens { lexer_tokens block_adrr read 0 read lexer_tokens block_adrr read 1 read i } block_adrr replace -> lexer_tokens
+            end
+            # lexer_tokens { OP_IF "if" i } if_addr replace -> lexer_tokens
         end
         i inc
     end drop
@@ -276,6 +288,11 @@ block asm_gen do -> lexer_tokens
             "    pop rax\n" F fwrite
             "    test rax, rax\n" F fwrite
             "    jz addr_" jmp_adrr itoa "\n\n" + + F fwrite
+        elif op_type OP_ELSE == do
+            op 2 read -> jmp_adrr
+            "    ; -- else --\n" F fwrite
+            "    jmp addr_" jmp_adrr itoa "\n\n" + + F fwrite
+            "addr_" i 1 + itoa ":" "\n\n" + + + F fwrite
         elif op_type OP_END == do
             "addr_" i itoa ":" "\n\n" + + + F fwrite
         elif op_type OP_INT == do
@@ -330,7 +347,7 @@ block asm_gen do -> lexer_tokens
             exit
         end
         i inc
-    end drop
+    end
     "    mov    rax, 0x2000001 ; exit\n" F fwrite
     "    mov    rdi, 0\n" F fwrite
     "    syscall\n" F fwrite
