@@ -27,6 +27,7 @@ true
 enum -> OP_INT
 enum -> OP_PRINT
 enum -> OP_DUP
+enum -> OP_DROP
 enum -> OP_PLUS
 enum -> OP_MINUS
 enum -> OP_MUL
@@ -168,6 +169,8 @@ block lexer do
                 lexer_tokens { OP_FOR lexer_id } append -> lexer_tokens
             elif lexer_id "do" == do
                 lexer_tokens { OP_DO lexer_id } append -> lexer_tokens
+            elif lexer_id "drop" == do
+                lexer_tokens { OP_DROP lexer_id } append -> lexer_tokens
             else
                 false assert "unexpected value"
             end
@@ -296,7 +299,6 @@ block asm_gen do -> lexer_tokens
                 exit
             end
             dec_stack_size
-            "    ; -- print --\n" F fwrite
             "    pop rdi\n" F fwrite
             "    call print\n\n" F fwrite
         elif op_type OP_DUP == do
@@ -305,40 +307,39 @@ block asm_gen do -> lexer_tokens
                 exit
             end
             inc_stack_size
-            "    ; -- dup ----\n" F fwrite
             "    pop rax\n" F fwrite
             "    push rax\n" F fwrite
             "    push rax\n\n" F fwrite
+        elif op_type OP_DROP == do
+            if stack_size 1 < do
+                "Error: `drop` expected at least one element on the stack." println
+                exit
+            end
+            dec_stack_size
+            "    pop rax\n" F fwrite
         elif op_type OP_IF == do
             dec_stack_size
             op 2 read -> jmp_adrr
-            "    ; -- if --\n" F fwrite
             "    pop rax\n" F fwrite
             "    test rax, rax\n" F fwrite
             "    jz addr_" jmp_adrr itoa "\n\n" + + F fwrite
         elif op_type OP_ELSE == do
             op 2 read -> jmp_adrr
-            "    ; -- else --\n" F fwrite
             "    jmp addr_" jmp_adrr itoa "\n\n" + + F fwrite
             # "addr_" i 1 + itoa ":" "\n\n" + + + F fwrite
         elif op_type OP_END == do
             op 2 read -> jmp_adrr
             if i 1 + jmp_adrr != do
-                "    ; -- end --\n" F fwrite
                 "    jmp addr_" jmp_adrr itoa "\n\n" + + F fwrite
-            end
-        elif op_type OP_FOR == do
-            "    ; -- for --\n" F fwrite
+            end            
         elif op_type OP_DO == do
             dec_stack_size
             op 2 read -> jmp_adrr
-            "    ; -- do --\n" F fwrite
             "    pop rax\n" F fwrite
             "    test rax, rax\n" F fwrite
             "    jz addr_" jmp_adrr itoa "\n\n" + + F fwrite
         elif op_type OP_INT == do
             inc_stack_size
-            "    ; -- push --\n" F fwrite
             "    push  " F fwrite op_value "\n\n" + F fwrite
         elif op_type OP_LESS_THAN == do
             if stack_size 2 < do
@@ -346,7 +347,6 @@ block asm_gen do -> lexer_tokens
                 exit
             end
             dec_stack_size
-            "    ; -- less than --\n" F fwrite
             "    mov rcx, 0\n" F fwrite
             "    mov rdx, 1\n" F fwrite
             "    pop rax\n" F fwrite
@@ -360,7 +360,6 @@ block asm_gen do -> lexer_tokens
                 exit
             end
             dec_stack_size
-            "    ; -- greater than --\n" F fwrite
             "    mov rcx, 0\n" F fwrite
             "    mov rdx, 1\n" F fwrite
             "    pop rax\n" F fwrite
@@ -374,7 +373,6 @@ block asm_gen do -> lexer_tokens
                 exit
             end
             dec_stack_size
-            "    ; -- plus --\n" F fwrite
             "    pop    rax\n" F fwrite
             "    pop    rbx\n" F fwrite
             "    add    rbx, rax\n" F fwrite
@@ -385,7 +383,6 @@ block asm_gen do -> lexer_tokens
                 exit
             end
             dec_stack_size
-            "    ; -- subtract --\n" F fwrite
             "    pop    rax\n" F fwrite
             "    pop    rbx\n" F fwrite
             "    sub    rbx, rax\n" F fwrite
@@ -400,8 +397,6 @@ block asm_gen do -> lexer_tokens
                 exit
             end
             dec_stack_size
-            # rewrite it later
-            "    ; -- is equals --\n" F fwrite
             "    mov rcx, 0\n" F fwrite
             "    mov rdx, 1\n" F fwrite
             "    pop rax\n" F fwrite
