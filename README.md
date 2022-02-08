@@ -26,6 +26,14 @@ $ ld tsharp.o -o tsharp -macosx_version_min 11.4 -L /Library/Developer/CommandLi
 $ ./tsharp
 ```
 
+```
+# for loop
+0 for dup 100 < do  
+    dup print
+    1 +
+end
+```
+
 ## Todo
 > _Some of these are in progress and not marked as checked_
 - [X] Implement integers
