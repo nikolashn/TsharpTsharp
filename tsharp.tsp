@@ -51,12 +51,12 @@ enum -> OP_EOF
 0 -> lexer_index
 1 -> lexer_line
 0 -> lexer_col 
-{} -> lexer_tokens
+{} -> arr_ops
 
 block lexer_init do
     len -> program_length
     0 -> lexer_index
-    {} -> lexer_tokens
+    {} -> arr_ops
 end
 
 block lexer_advance do
@@ -67,7 +67,7 @@ end
 block lexer do
     for true do
         if lexer_index program_length == do
-            lexer_tokens { OP_EOF "OP_EOF" } append -> lexer_tokens
+            arr_ops { OP_EOF "OP_EOF" } append -> arr_ops
             break
         end
         program lexer_index read -> lexer_char
@@ -78,10 +78,10 @@ block lexer do
             0 -> lexer_col
             lexer_advance
         elif lexer_char "<" == do
-            lexer_tokens { OP_LESS_THAN "<" } append -> lexer_tokens
+            arr_ops { OP_LESS_THAN "<" } append -> arr_ops
             lexer_advance
         elif lexer_char ">" == do
-            lexer_tokens { OP_GREATER_THAN ">" } append -> lexer_tokens
+            arr_ops { OP_GREATER_THAN ">" } append -> arr_ops
             lexer_advance
         elif lexer_char "#" == do
             for true do
@@ -92,33 +92,33 @@ block lexer do
                 end
             end
         elif lexer_char "+" == do
-            lexer_tokens { OP_PLUS "+" } append -> lexer_tokens
+            arr_ops { OP_PLUS "+" } append -> arr_ops
             lexer_advance
         elif lexer_char "-" == do
             lexer_advance
             program lexer_index read -> lexer_peak
             if lexer_peak ">" == do
                 lexer_advance
-                lexer_tokens { OP_EQUALS "->" } append -> lexer_tokens
+                arr_ops { OP_EQUALS "->" } append -> arr_ops
             else
-                lexer_tokens { OP_MINUS "-" } append -> lexer_tokens
+                arr_ops { OP_MINUS "-" } append -> arr_ops
             end
         elif lexer_char "=" == do
             lexer_advance
             program lexer_index read -> lexer_peak
             if lexer_peak "=" == do
                 lexer_advance
-                lexer_tokens { OP_IS_EQUALS "==" } append -> lexer_tokens
+                arr_ops { OP_IS_EQUALS "==" } append -> arr_ops
             else
                 # TODO: write error message.
                 "SyntaxError:" print lexer_line print ":" print lexer_col print ": unexpected token..." println
                 exit
             end
         elif lexer_char "*" == do
-            lexer_tokens { OP_MUL "*" } append -> lexer_tokens
+            arr_ops { OP_MUL "*" } append -> arr_ops
             lexer_advance
         elif lexer_char "/" == do
-            lexer_tokens { OP_DIV "/" } append -> lexer_tokens
+            arr_ops { OP_DIV "/" } append -> arr_ops
             lexer_advance
         elif lexer_char isdigit do
             "" -> lexer_int
@@ -137,7 +137,7 @@ block lexer do
                 lexer_int lexer_char + -> lexer_int
                 lexer_advance
             end
-            lexer_tokens { OP_INT lexer_int } append -> lexer_tokens
+            arr_ops { OP_INT lexer_int } append -> arr_ops
         else
             "" -> lexer_id
             lexer_id lexer_char + -> lexer_id
@@ -156,21 +156,21 @@ block lexer do
                 lexer_advance
             end
             if lexer_id "print" == do
-                lexer_tokens { OP_PRINT lexer_id } append -> lexer_tokens
+                arr_ops { OP_PRINT lexer_id } append -> arr_ops
             elif lexer_id "if" == do
-                lexer_tokens { OP_IF lexer_id } append -> lexer_tokens
+                arr_ops { OP_IF lexer_id } append -> arr_ops
             elif lexer_id "end" == do
-                lexer_tokens { OP_END lexer_id } append -> lexer_tokens
+                arr_ops { OP_END lexer_id } append -> arr_ops
             elif lexer_id "else" == do
-                lexer_tokens { OP_ELSE lexer_id } append -> lexer_tokens
+                arr_ops { OP_ELSE lexer_id } append -> arr_ops
             elif lexer_id "dup" == do
-                lexer_tokens { OP_DUP lexer_id } append -> lexer_tokens
+                arr_ops { OP_DUP lexer_id } append -> arr_ops
             elif lexer_id "for" == do
-                lexer_tokens { OP_FOR lexer_id } append -> lexer_tokens
+                arr_ops { OP_FOR lexer_id } append -> arr_ops
             elif lexer_id "do" == do
-                lexer_tokens { OP_DO lexer_id } append -> lexer_tokens
+                arr_ops { OP_DO lexer_id } append -> arr_ops
             elif lexer_id "drop" == do
-                lexer_tokens { OP_DROP lexer_id } append -> lexer_tokens
+                arr_ops { OP_DROP lexer_id } append -> arr_ops
             else
                 false assert "unexpected value"
             end
@@ -180,33 +180,33 @@ end
 
 block parse do
     {} -> addr_stack
-    lexer_tokens len -> length
+    arr_ops len -> length
     0 for dup length < do -> i
-        lexer_tokens i read -> op
+        arr_ops i read -> op
         if op 0 read OP_IF == do
             addr_stack i append -> addr_stack
         elif op 0 read OP_ELSE == do
             addr_stack addr_stack len 1 - read -> if_addr
             addr_stack addr_stack len 1 - remove -> addr_stack
-            lexer_tokens { OP_IF "if" i 1 + } if_addr replace -> lexer_tokens
+            arr_ops { OP_IF "if" i 1 + } if_addr replace -> arr_ops
             addr_stack i append -> addr_stack
         elif op 0 read OP_END == do
             addr_stack addr_stack len 1 - read -> block_adrr
             addr_stack addr_stack len 1 - remove -> addr_stack
 
-            if lexer_tokens block_adrr read 0 read OP_IF == lexer_tokens block_adrr read 0 read OP_ELSE == || do
-                lexer_tokens { lexer_tokens block_adrr read 0 read lexer_tokens block_adrr read 1 read i } block_adrr replace -> lexer_tokens
-                lexer_tokens { OP_END "end" i 1 + } i replace -> lexer_tokens
-            elif lexer_tokens block_adrr read 0 read OP_DO == do
-                lexer_tokens { OP_END "end" lexer_tokens block_adrr read 2 read } i replace -> lexer_tokens
-                lexer_tokens { OP_DO "do" i 1 + } block_adrr replace -> lexer_tokens
+            if arr_ops block_adrr read 0 read OP_IF == arr_ops block_adrr read 0 read OP_ELSE == || do
+                arr_ops { arr_ops block_adrr read 0 read arr_ops block_adrr read 1 read i } block_adrr replace -> arr_ops
+                arr_ops { OP_END "end" i 1 + } i replace -> arr_ops
+            elif arr_ops block_adrr read 0 read OP_DO == do
+                arr_ops { OP_END "end" arr_ops block_adrr read 2 read } i replace -> arr_ops
+                arr_ops { OP_DO "do" i 1 + } block_adrr replace -> arr_ops
             end
         elif op 0 read OP_FOR == do
             addr_stack i append -> addr_stack            
         elif op 0 read OP_DO == do
             addr_stack addr_stack len 1 - read -> for_adrr
             addr_stack addr_stack len 1 - remove -> addr_stack
-            lexer_tokens { OP_DO "do" for_adrr } i replace -> lexer_tokens
+            arr_ops { OP_DO "do" for_adrr } i replace -> arr_ops
             addr_stack i append -> addr_stack
         end
         i inc
@@ -229,7 +229,7 @@ block dec_stack_size do
     stack_size 1 - -> stack_size # decrement the stack size.
 end
 
-block asm_gen do -> lexer_tokens
+block asm_gen do -> arr_ops
 
     "GLOBAL _main\n\n" F fwrite
 
@@ -248,7 +248,7 @@ block asm_gen do -> lexer_tokens
     "    lea     rsi, [rsp+rdx]\n" F fwrite
     "    mov     edi, 1\n" F fwrite
     "    mov     rdx, r8\n" F fwrite
-    "    mov     rax, 0x2000004 ; call write\n" F fwrite
+    "    mov     rax, 0x2000004 ; write\n" F fwrite
     "    syscall\n" F fwrite
     "    add     rsp, 40\n" F fwrite
     "    ret\n\n" F fwrite
@@ -284,12 +284,12 @@ block asm_gen do -> lexer_tokens
 
     "_main:\n" F fwrite
 
-    lexer_tokens len -> length 
+    arr_ops len -> length 
 
     0 for dup length < do -> i
         "addr_" i itoa ":" "\n" + + + F fwrite
 
-        lexer_tokens i read -> op
+        arr_ops i read -> op
         op 0 read -> op_type
         op 1 read -> op_value
 
@@ -438,7 +438,7 @@ block main do
 
     parse
 
-    lexer_tokens asm_gen
+    arr_ops asm_gen
 
     F fclose # close file
     

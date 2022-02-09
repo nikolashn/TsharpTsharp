@@ -15,7 +15,7 @@ print:
     lea     rsi, [rsp+rdx]
     mov     edi, 1
     mov     rdx, r8
-    mov     rax, 0x2000004 ; call write
+    mov     rax, 0x2000004 ; write
     syscall
     add     rsp, 40
     ret
@@ -51,23 +51,18 @@ global start
 
 _main:
 addr_0:
-    ; -- push --
     push  0
 
 addr_1:
-    ; -- for --
 addr_2:
-    ; -- dup ----
     pop rax
     push rax
     push rax
 
 addr_3:
-    ; -- push --
-    push  100
+    push  10000000
 
 addr_4:
-    ; -- less than --
     mov rcx, 0
     mov rdx, 1
     pop rax
@@ -77,38 +72,34 @@ addr_4:
     push rcx
 
 addr_5:
-    ; -- do --
     pop rax
     test rax, rax
     jz addr_11
 
 addr_6:
-    ; -- dup ----
     pop rax
     push rax
     push rax
 
 addr_7:
-    ; -- print --
     pop rdi
     call print
 
 addr_8:
-    ; -- push --
     push  1
 
 addr_9:
-    ; -- plus --
     pop    rax
     pop    rbx
     add    rbx, rax
     push   rbx
 
 addr_10:
-    ; -- end --
     jmp addr_1
 
 addr_11:
+    pop rax
+addr_12:
     mov    rax, 0x2000001 ; exit
     mov    rdi, 0
     syscall
