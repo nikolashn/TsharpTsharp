@@ -43,6 +43,7 @@ end
 - [X] Implement addition (arithmetic)
 - [X] Implement subtraction (arithmetic)
 - [X] Implement comments
+- [ ] Implement macors
 - [ ] Implement variable assignments
 - [ ] Implement function(block) definitions
 - [ ] Implement function calls
