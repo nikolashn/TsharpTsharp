@@ -407,8 +407,10 @@ block asm_gen do -> lexer_tokens
         elif op_type OP_EOF == do
             break
         else
-            "Syntax Error: unexpected token value '" op_value + "'" + println
-            exit
+            if op_type OP_FOR != do
+                "Syntax Error: unexpected token value '" op_value + "'" + println
+                exit
+            end
         end
         i inc
     end
