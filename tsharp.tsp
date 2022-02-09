@@ -229,7 +229,7 @@ block dec_stack_size do
     stack_size 1 - -> stack_size # decrement the stack size.
 end
 
-block asm_gen_x86_64_macos do -> lexer_tokens
+block asm_gen do -> lexer_tokens
 
     "GLOBAL _main\n\n" F fwrite
 
@@ -438,9 +438,7 @@ block main do
 
     parse
 
-    lexer_tokens
-    
-    asm_gen_macos_x86_64
+    lexer_tokens asm_gen
 
     F fclose # close file
     
