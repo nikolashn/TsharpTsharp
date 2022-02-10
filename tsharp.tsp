@@ -25,6 +25,7 @@ end
 
 true
 enum -> OP_INT
+enum -> OP_VAR
 enum -> OP_PRINT
 enum -> OP_DUP
 enum -> OP_DROP
@@ -172,13 +173,13 @@ block lexer do
             elif lexer_id "drop" == do
                 arr_ops { OP_DROP lexer_id } append -> arr_ops
             else
-                false assert "unexpected value"
+                arr_ops { OP_VAR lexer_id } append -> arr_ops
             end
         end
     end
 end
 
-# variables { { VarName type } { VarName type } { VarName type } }
+# variables { { VarName type } { VarName type } { VarName type } ... }
 {} -> variables
 
 block parse do
@@ -190,7 +191,12 @@ block parse do
 
     {} -> addr_stack
     arr_ops len -> length
-    0 for dup length < do -> i
+
+    0 -> i
+    for true do
+        if length i == do
+            break
+        end
         arr_ops i read -> op
         if op 0 read OP_IF == do
             addr_stack i append -> addr_stack
@@ -217,9 +223,17 @@ block parse do
             addr_stack addr_stack len 1 - remove -> addr_stack
             arr_ops { OP_DO "do" for_adrr } i replace -> arr_ops
             addr_stack i append -> addr_stack
+        elif op 0 read OP_EQUALS == do
+            i inc -> i
+            arr_ops i read -> op
+            if op 0 read OP_VAR == do
+                "variable definitions are not implemented yet :D\n" print exit
+            else
+                "unexpected token type" print op 0 read println exit
+            end
         end
-        i inc
-    end drop
+        i inc -> i
+    end
 end
 
 # ---------------------------
@@ -447,9 +461,9 @@ block main do
 
     parse
 
-    arr_ops println
+    arr_ops # println
     
-    # asm_gen
+    asm_gen
 
     F fclose # close file
     
