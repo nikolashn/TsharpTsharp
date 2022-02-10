@@ -178,7 +178,16 @@ block lexer do
     end
 end
 
+# variables { { VarName type } { VarName type } { VarName type } }
+{} -> variables
+
 block parse do
+    # `do` `end` `if` `else`
+    # { op token , op value , where to jump }
+
+    # for loop example
+    # {{0, 0}, {15, for}, {2, dup}, {0, 100}, {10, <}, {16, do, 11}, {2, dup}, {1, print}, {0, 1}, {4, +}, {13, end, 1}, {3, drop}, {17, OP_EOF}}
+
     {} -> addr_stack
     arr_ops len -> length
     0 for dup length < do -> i
@@ -438,7 +447,9 @@ block main do
 
     parse
 
-    arr_ops asm_gen
+    arr_ops println
+    
+    # asm_gen
 
     F fclose # close file
     
