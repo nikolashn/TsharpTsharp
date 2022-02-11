@@ -42,6 +42,10 @@ enum -> OP_END
 enum -> OP_ELSE
 enum -> OP_FOR
 enum -> OP_DO
+enum -> OP_MEM
+enum -> OP_READ
+enum -> OP_WRITE
+enum -> OP_SYSCALL
 enum -> OP_EOF
 
 # ---------------
@@ -172,6 +176,14 @@ block lexer do
                 arr_ops { OP_DO lexer_id } append -> arr_ops
             elif lexer_id "drop" == do
                 arr_ops { OP_DROP lexer_id } append -> arr_ops
+            elif lexer_id "mem" == do
+                arr_ops { OP_MEM lexer_id } append -> arr_ops
+            elif lexer_id "read" == do
+                arr_ops { OP_READ lexer_id } append -> arr_ops
+            elif lexer_id "write" == do
+                arr_ops { OP_WRITE lexer_id } append -> arr_ops
+            elif lexer_id "syscall" == do
+                arr_ops { OP_SYSCALL lexer_id } append -> arr_ops
             else
                 arr_ops { OP_VAR lexer_id } append -> arr_ops
             end
@@ -333,6 +345,25 @@ block asm_gen do -> arr_ops
             "    pop rax\n" F fwrite
             "    push rax\n" F fwrite
             "    push rax\n\n" F fwrite
+        elif op_type OP_MEM == do
+            inc_stack_size
+            "    mov rax, mem\n" F fwrite
+            "    push rax\n\n" F fwrite
+        elif op_type OP_READ == do
+            "    pop rax\n" F fwrite
+            "    xor rbx, rbx\n" F fwrite
+            "    mov bl, [rax]\n" F fwrite
+            "    push rbx\n\n" F fwrite
+        elif op_type OP_WRITE == do
+            "    pop rbx\n" F fwrite
+            "    pop rax\n" F fwrite
+            "    mov [rax], bl\n\n" F fwrite
+        elif op_type OP_SYSCALL == do
+            "    pop rax\n" F fwrite
+            "    pop rdi\n" F fwrite
+            "    pop rsi\n" F fwrite
+            "    pop rdx\n" F fwrite
+            "    syscall\n\n" F fwrite
         elif op_type OP_DROP == do
             if stack_size 1 < do
                 "Error: `drop` expected at least one element on the stack." println
@@ -439,7 +470,9 @@ block asm_gen do -> arr_ops
     end
     "    mov    rax, 0x2000001 ; exit\n" F fwrite
     "    mov    rdi, 0\n" F fwrite
-    "    syscall\n" F fwrite
+    "    syscall\n\n" F fwrite
+    "section .bss\n" F fwrite
+    "    mem: resb 50000\n" F fwrite
 end
 
 
