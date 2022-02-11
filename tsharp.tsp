@@ -25,6 +25,7 @@ end
 
 true
 enum -> OP_INT
+enum -> OP_HEX
 enum -> OP_VAR
 enum -> OP_PRINT
 enum -> OP_DUP
@@ -127,8 +128,16 @@ block lexer do
             lexer_advance
         elif lexer_char isdigit do
             "" -> lexer_int
+            false -> IsHex
             lexer_int lexer_char + -> lexer_int
             lexer_advance
+            program lexer_index read -> lexer_char
+            if lexer_char "x" == do # hexadecimal
+                true -> IsHex
+                lexer_int lexer_char + -> lexer_int
+                lexer_advance
+                program lexer_index read -> lexer_char
+            end
             for true do
                 if lexer_index program_length == do
                     break
@@ -142,7 +151,11 @@ block lexer do
                 lexer_int lexer_char + -> lexer_int
                 lexer_advance
             end
-            arr_ops { OP_INT lexer_int } append -> arr_ops
+            if IsHex do
+                arr_ops { OP_HEX lexer_int } append -> arr_ops
+            else
+                arr_ops { OP_INT lexer_int } append -> arr_ops
+            end
         else
             "" -> lexer_id
             lexer_id lexer_char + -> lexer_id
@@ -393,6 +406,9 @@ block asm_gen do -> arr_ops
             "    test rax, rax\n" F fwrite
             "    jz addr_" jmp_adrr itoa "\n\n" + + F fwrite
         elif op_type OP_INT == do
+            inc_stack_size
+            "    push  " F fwrite op_value "\n\n" + F fwrite
+        elif op_type OP_HEX == do
             inc_stack_size
             "    push  " F fwrite op_value "\n\n" + F fwrite
         elif op_type OP_LESS_THAN == do
