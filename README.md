@@ -1,6 +1,6 @@
-# Programming language
+# Torth Programming language
 
-[The T# Programming Language](https://github.com/Tsharp-lang/Tsharp)
+It's like Forth, Porth but written in T#.
 
 
 ## Usage
