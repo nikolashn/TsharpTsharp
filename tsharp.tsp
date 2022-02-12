@@ -3,24 +3,24 @@
 # ---- tokens ----
 # ----------------
 
-0 -> enum_index
+0 -> enum_count
 block enum do
     try
         if dup typeof bool == do
             -> bool_value
             if bool_value do
-                0 -> enum_index
-                enum_index
+                0 -> enum_count
+                enum_count
             else
-                enum_index
+                enum_count
             end
         else
-            enum_index
+            enum_count
         end
     except StackUnderflowError do
-        enum_index
+        enum_count
     end
-    enum_index 1 + -> enum_index
+    enum_count 1 + -> enum_count
 end
 
 true
