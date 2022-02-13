@@ -29,6 +29,9 @@ enum -> OP_HEX
 enum -> OP_VAR
 enum -> OP_PRINT
 enum -> OP_DUP
+enum -> OP_DUP2
+enum -> OP_SWAP
+enum -> OP_OVER
 enum -> OP_DROP
 enum -> OP_PLUS
 enum -> OP_MINUS
@@ -38,6 +41,10 @@ enum -> OP_EQUALS
 enum -> OP_IS_EQUALS
 enum -> OP_LESS_THAN
 enum -> OP_GREATER_THAN
+enum -> OP_RIGHT_SHIFT
+enum -> OP_LEFT_SHIFT
+enum -> OP_BIT_OR
+enum -> OP_BIT_AND
 enum -> OP_IF
 enum -> OP_END
 enum -> OP_ELSE
@@ -83,12 +90,30 @@ block lexer do
             lexer_line inc -> lexer_line
             0 -> lexer_col
             lexer_advance
+        elif lexer_char "|" == do
+            lexer_advance
+            arr_ops { OP_BIT_OR "|" } append -> arr_ops
+        elif lexer_char "&" == do
+            lexer_advance
+            arr_ops { OP_BIT_AND "&" } append -> arr_ops
         elif lexer_char "<" == do
-            arr_ops { OP_LESS_THAN "<" } append -> arr_ops
             lexer_advance
+            program lexer_index read -> lexer_peak
+            if lexer_peak "<" == do
+                lexer_advance
+                arr_ops { OP_LEFT_SHIFT "<<" } append -> arr_ops
+            else
+                arr_ops { OP_LESS_THAN "<" } append -> arr_ops
+            end
         elif lexer_char ">" == do
-            arr_ops { OP_GREATER_THAN ">" } append -> arr_ops
             lexer_advance
+            program lexer_index read -> lexer_peak
+            if lexer_peak ">" == do
+                lexer_advance
+                arr_ops { OP_RIGHT_SHIFT ">>" } append -> arr_ops    
+            else
+                arr_ops { OP_GREATER_THAN ">" } append -> arr_ops
+            end
         elif lexer_char "#" == do
             for true do
                 lexer_advance
@@ -197,6 +222,12 @@ block lexer do
                 arr_ops { OP_WRITE lexer_id } append -> arr_ops
             elif lexer_id "syscall" == do
                 arr_ops { OP_SYSCALL lexer_id } append -> arr_ops
+            elif lexer_id "dup2" == do
+                arr_ops { OP_DUP2 lexer_id } append -> arr_ops
+            elif lexer_id "swap" == do
+                arr_ops { OP_SWAP lexer_id } append -> arr_ops
+            elif lexer_id "over" == do
+                arr_ops { OP_OVER lexer_id } append -> arr_ops
             else
                 arr_ops { OP_VAR lexer_id } append -> arr_ops
             end
@@ -342,24 +373,52 @@ block asm_gen do -> arr_ops
         op 1 read -> op_value
 
         if op_type OP_PRINT == do
-            if stack_size 1 < do
-                "Error: `print` expected at least one element on the stack." println
-                exit
-            end
-            dec_stack_size
             "    pop rdi\n" F fwrite
             "    call print\n\n" F fwrite
         elif op_type OP_DUP == do
-            if stack_size 1 < do
-                "Error: `dup` expected at least one element on the stack." println
-                exit
-            end
-            inc_stack_size
             "    pop rax\n" F fwrite
             "    push rax\n" F fwrite
             "    push rax\n\n" F fwrite
+        elif op_type OP_DUP2 == do
+            "    pop rax\n" F fwrite
+            "    pop rdx\n" F fwrite
+            "    push rdx\n" F fwrite
+            "    push rdx\n" F fwrite
+            "    push rax\n" F fwrite
+            "    push rdx\n" F fwrite
+            "    push rax\n\n" F fwrite
+        elif op_type OP_SWAP == do
+            "    pop rax\n" F fwrite
+            "    pop rbx\n" F fwrite
+            "    push rax\n" F fwrite
+            "    push rbx\n\n" F fwrite
+        elif op_type OP_LEFT_SHIFT == do
+            "    pop rcx\n" F fwrite
+            "    pop rbx\n" F fwrite
+            "    shl rbx, cl\n" F fwrite
+            "    push rbx\n\n" F fwrite
+        elif op_type OP_RIGHT_SHIFT == do
+            "    pop rcx\n" F fwrite
+            "    pop rbx\n" F fwrite
+            "    shr rbx, cl\n" F fwrite
+            "    push rbx\n\n" F fwrite
+        elif op_type OP_BIT_OR == do
+            "    pop rax\n" F fwrite
+            "    pop rbx\n" F fwrite
+            "    or  rbx, rax\n" F fwrite
+            "    push rbx\n\n" F fwrite
+        elif op_type OP_BIT_AND == do
+            "    pop rax\n" F fwrite
+            "    pop rbx\n" F fwrite
+            "    and  rbx, rax\n" F fwrite
+            "    push rbx\n\n" F fwrite
+        elif op_type OP_OVER == do
+            "    pop rax\n" F fwrite
+            "    pop rbx\n" F fwrite
+            "    push rbx\n" F fwrite
+            "    push rax\n" F fwrite
+            "    push rbx\n\n" F fwrite
         elif op_type OP_MEM == do
-            inc_stack_size
             "    mov rax, mem\n" F fwrite
             "    push rax\n\n" F fwrite
         elif op_type OP_READ == do
@@ -378,14 +437,8 @@ block asm_gen do -> arr_ops
             "    pop rdx\n" F fwrite
             "    syscall\n\n" F fwrite
         elif op_type OP_DROP == do
-            if stack_size 1 < do
-                "Error: `drop` expected at least one element on the stack." println
-                exit
-            end
-            dec_stack_size
             "    pop rax\n" F fwrite
         elif op_type OP_IF == do
-            dec_stack_size
             op 2 read -> jmp_adrr
             "    pop rax\n" F fwrite
             "    test rax, rax\n" F fwrite
@@ -400,7 +453,6 @@ block asm_gen do -> arr_ops
                 "    jmp addr_" jmp_adrr itoa "\n\n" + + F fwrite
             end            
         elif op_type OP_DO == do
-            dec_stack_size
             op 2 read -> jmp_adrr
             "    pop rax\n" F fwrite
             "    test rax, rax\n" F fwrite
@@ -412,11 +464,6 @@ block asm_gen do -> arr_ops
             inc_stack_size
             "    push  " F fwrite op_value "\n\n" + F fwrite
         elif op_type OP_LESS_THAN == do
-            if stack_size 2 < do
-                "Error: `<` expected at least two <int> type element on the stack." println
-                exit
-            end
-            dec_stack_size
             "    mov rcx, 0\n" F fwrite
             "    mov rdx, 1\n" F fwrite
             "    pop rax\n" F fwrite
@@ -425,11 +472,6 @@ block asm_gen do -> arr_ops
             "    cmovl rcx, rdx\n" F fwrite
             "    push rcx\n\n" F fwrite
         elif op_type OP_GREATER_THAN == do
-            if stack_size 2 < do
-                "Error: `>` expected at least two <int> type element on the stack." println
-                exit
-            end
-            dec_stack_size
             "    mov rcx, 0\n" F fwrite
             "    mov rdx, 1\n" F fwrite
             "    pop rax\n" F fwrite
@@ -438,21 +480,11 @@ block asm_gen do -> arr_ops
             "    cmovg rcx, rdx\n" F fwrite
             "    push rcx\n\n" F fwrite
         elif op_type OP_PLUS == do
-            if stack_size 2 < do
-                "Error: `+` expected at least two <int> type element on the stack." println
-                exit
-            end
-            dec_stack_size
             "    pop    rax\n" F fwrite
             "    pop    rbx\n" F fwrite
             "    add    rbx, rax\n" F fwrite
             "    push   rbx\n\n" F fwrite
         elif op_type OP_MINUS == do
-            if stack_size 2 < do
-                "Error: `-` expected at least two <int> type element on the stack." println
-                exit
-            end
-            dec_stack_size
             "    pop    rax\n" F fwrite
             "    pop    rbx\n" F fwrite
             "    sub    rbx, rax\n" F fwrite
@@ -462,11 +494,6 @@ block asm_gen do -> arr_ops
         elif op_type OP_DIV == do
             false assert "not implemented yet"
         elif op_type OP_IS_EQUALS == do
-            if stack_size 2 < do
-                "Error: `==` expected at least two <int> type element on the stack." println
-                exit
-            end
-            dec_stack_size
             "    mov rcx, 0\n" F fwrite
             "    mov rdx, 1\n" F fwrite
             "    pop rax\n" F fwrite
