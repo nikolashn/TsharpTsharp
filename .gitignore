@@ -2,3 +2,5 @@ tsharp
 main
 *.o
 backup.tsp
+string.tsp
+torth

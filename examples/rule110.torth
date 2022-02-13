@@ -1,0 +1,33 @@
+mem 98 + 1 write
+
+0 for dup 98 < do
+    0 for dup 100 < do
+        dup mem + read if
+            mem 100 + 42 write
+        else
+            mem 100 + 32 write
+        end
+        1 mem 100 + 1 0x2000004 syscall
+        1 +
+    end drop
+
+    mem 100 + 10 write
+    1 mem 100 + 1 0x2000004 syscall
+
+    mem read 1 << mem 1 + read |
+    
+    1 for dup 98 < do
+        swap 1 << 7 & over mem + 1 + read |
+        dup2 110 swap >> 1 &
+        swap mem + swap write
+        swap
+        1 +
+    end drop drop
+
+    0 for dup 97 < do
+        swap drop
+        1 +
+    end drop
+    
+    1 +
+end drop

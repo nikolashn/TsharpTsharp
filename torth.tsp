@@ -296,7 +296,7 @@ end
 # ------ generate ASM  ------
 # ---------------------------
 
-"tsharp.asm" fopen -> F
+"torth.asm" fopen -> F
 F ftruncate
 0 -> stack_size
 
@@ -527,7 +527,7 @@ end
 
 block main do
     # read program from file
-    "main.tsp" fopen -> ProgramF
+    "main.torth" fopen -> ProgramF
     ProgramF fread -> program
     ProgramF fclose
 
