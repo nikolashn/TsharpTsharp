@@ -25,6 +25,7 @@ end
 
 true
 enum -> OP_INT
+enum -> OP_STR
 enum -> OP_HEX
 enum -> OP_VAR
 enum -> OP_PRINT
@@ -181,6 +182,23 @@ block lexer do
             else
                 arr_ops { OP_INT lexer_int } append -> arr_ops
             end
+        elif lexer_char '\"' == do
+            "" -> lexer_str
+            #lexer_str lexer_char + -> lexer_str
+            lexer_advance
+            for true do
+                if lexer_index program_length == do
+                    break
+                end
+                program lexer_index read -> lexer_char
+                if lexer_char '\"' == do
+                    lexer_advance
+                    break
+                end
+                lexer_str lexer_char + -> lexer_str
+                lexer_advance
+            end
+            arr_ops { OP_STR lexer_str } append -> arr_ops
         else
             "" -> lexer_id
             lexer_id lexer_char + -> lexer_id
@@ -363,7 +381,8 @@ block asm_gen do -> arr_ops
 
     "_main:\n" F fwrite
 
-    arr_ops len -> length 
+    arr_ops len -> length
+    {} -> strings
 
     0 for dup length < do -> i
         "addr_" i itoa ":" "\n" + + + F fwrite
@@ -446,7 +465,6 @@ block asm_gen do -> arr_ops
         elif op_type OP_ELSE == do
             op 2 read -> jmp_adrr
             "    jmp addr_" jmp_adrr itoa "\n\n" + + F fwrite
-            # "addr_" i 1 + itoa ":" "\n\n" + + + F fwrite
         elif op_type OP_END == do
             op 2 read -> jmp_adrr
             if i 1 + jmp_adrr != do
@@ -458,10 +476,14 @@ block asm_gen do -> arr_ops
             "    test rax, rax\n" F fwrite
             "    jz addr_" jmp_adrr itoa "\n\n" + + F fwrite
         elif op_type OP_INT == do
-            inc_stack_size
             "    push  " F fwrite op_value "\n\n" + F fwrite
+        elif op_type OP_STR == do
+            "    mov rax, string_len_" strings len itoa  + "\n" + F fwrite
+            "    push rax\n" F fwrite
+            "    mov rsi, string_" strings len itoa  + "\n" + F fwrite
+            "    push rsi\n\n" F fwrite
+            strings op 1 read append -> strings
         elif op_type OP_HEX == do
-            inc_stack_size
             "    push  " F fwrite op_value "\n\n" + F fwrite
         elif op_type OP_LESS_THAN == do
             "    mov rcx, 0\n" F fwrite
@@ -516,6 +538,22 @@ block asm_gen do -> arr_ops
     "    syscall\n\n" F fwrite
     "section .bss\n" F fwrite
     "    mem: resb 50000\n" F fwrite
+    "section .data" F fwrite
+    0 for dup strings len < do -> strings_i
+        "\n    string_" F fwrite strings_i itoa F fwrite
+        ': db ' F fwrite
+        strings strings_i read uniquote b -> byte_arr
+        0 for dup byte_arr len < do -> byte_index
+            byte_arr byte_index read itoa F fwrite
+            if byte_index byte_arr len 1 - < do
+                ", "  F fwrite
+            end
+            byte_index inc
+        end drop
+        "\n    string_len_" F fwrite strings_i itoa F fwrite ": equ $ - " F fwrite
+        "string_" F fwrite strings_i itoa F fwrite
+        strings_i inc
+    end
 end
 
 
