@@ -46,6 +46,7 @@ enum -> OP_RIGHT_SHIFT
 enum -> OP_LEFT_SHIFT
 enum -> OP_BIT_OR
 enum -> OP_BIT_AND
+enum -> OP_NOT_EQUALS
 enum -> OP_IF
 enum -> OP_END
 enum -> OP_ELSE
@@ -105,6 +106,16 @@ block lexer do
                 arr_ops { OP_LEFT_SHIFT "<<" } append -> arr_ops
             else
                 arr_ops { OP_LESS_THAN "<" } append -> arr_ops
+            end
+        elif lexer_char "!" == do
+            lexer_advance
+            program lexer_index read -> lexer_peak
+            if lexer_peak "=" == do
+                lexer_advance
+                arr_ops { OP_NOT_EQUALS "!=" } append -> arr_ops
+            else
+                "syntax error...\n" print
+                exit
             end
         elif lexer_char ">" == do
             lexer_advance
@@ -500,6 +511,14 @@ block asm_gen do -> arr_ops
             "    pop r12\n" F fwrite
             "    cmp r12, rax\n" F fwrite
             "    cmovg rcx, rdx\n" F fwrite
+            "    push rcx\n\n" F fwrite
+        elif op_type OP_NOT_EQUALS == do
+            "    mov rcx, 0\n" F fwrite
+            "    mov rdx, 1\n" F fwrite
+            "    pop rbx\n" F fwrite
+            "    pop rax\n" F fwrite
+            "    cmp rax, rbx\n" F fwrite
+            "    cmovne rcx, rdx\n" F fwrite
             "    push rcx\n\n" F fwrite
         elif op_type OP_PLUS == do
             "    pop    rax\n" F fwrite
