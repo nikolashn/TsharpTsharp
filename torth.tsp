@@ -55,6 +55,8 @@ enum -> OP_DO
 enum -> OP_MEM
 enum -> OP_READ
 enum -> OP_WRITE
+enum -> OP_EXIT
+enum -> OP_ROT
 enum -> OP_SYSCALL
 enum -> OP_EOF
 
@@ -114,9 +116,11 @@ block lexer do
                 lexer_advance
                 arr_ops { OP_NOT_EQUALS "!=" } append -> arr_ops
             else
-                "syntax error...\n" print
-                exit
+                arr_ops { OP_WRITE "!" } append -> arr_ops
             end
+        elif lexer_char "@" == do
+            lexer_advance
+            arr_ops { OP_READ "@" } append -> arr_ops
         elif lexer_char ">" == do
             lexer_advance
             program lexer_index read -> lexer_peak
@@ -257,6 +261,10 @@ block lexer do
                 arr_ops { OP_SWAP lexer_id } append -> arr_ops
             elif lexer_id "over" == do
                 arr_ops { OP_OVER lexer_id } append -> arr_ops
+            elif lexer_id "exit" == do
+                arr_ops { OP_EXIT lexer_id } append -> arr_ops
+            elif lexer_id "rot" == do
+                arr_ops { OP_ROT lexer_id } append -> arr_ops
             else
                 arr_ops { OP_VAR lexer_id } append -> arr_ops
             end
@@ -460,6 +468,13 @@ block asm_gen do -> arr_ops
             "    pop rbx\n" F fwrite
             "    pop rax\n" F fwrite
             "    mov [rax], bl\n\n" F fwrite
+        elif op_type OP_ROT == do
+            "    pop rax\n" F fwrite
+            "    pop rbx\n" F fwrite
+            "    pop rcx\n" F fwrite
+            "    push rbx\n" F fwrite
+            "    push rax\n" F fwrite
+            "    push rcx\n\n" F fwrite
         elif op_type OP_SYSCALL == do
             "    pop rax\n" F fwrite
             "    pop rdi\n" F fwrite
@@ -542,6 +557,11 @@ block asm_gen do -> arr_ops
             "    cmp r12, rax\n" F fwrite
             "    cmove rcx, rdx\n" F fwrite
             "    push rcx\n\n" F fwrite
+        elif op_type OP_EXIT == do
+            "    pop rax\n" F fwrite
+            "    mov    rax, 0x2000001\n" F fwrite
+            "    mov    rdi, rax\n" F fwrite
+            "    syscall\n\n" F fwrite
         elif op_type OP_EOF == do
             break
         else
