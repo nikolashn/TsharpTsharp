@@ -55,8 +55,11 @@ enum -> OP_DO
 enum -> OP_MEM
 enum -> OP_READ
 enum -> OP_WRITE
+enum -> OP_WRITE_64
+enum -> OP_READ_64
 enum -> OP_EXIT
 enum -> OP_ROT
+enum -> OP_INCLUDE
 enum -> OP_SYSCALL
 enum -> OP_EOF
 
@@ -67,13 +70,16 @@ enum -> OP_EOF
 0 -> program_length
 0 -> lexer_index
 1 -> lexer_line
-0 -> lexer_col 
-{} -> arr_ops
+0 -> lexer_col
 
 block lexer_init do
     len -> program_length
     0 -> lexer_index
+    1 -> lexer_line
+    0 -> lexer_col 
     {} -> arr_ops
+
+    arr_ops
 end
 
 block lexer_advance do
@@ -81,7 +87,7 @@ block lexer_advance do
     lexer_index inc -> lexer_index
 end
 
-block lexer do
+block lexer do -> arr_ops
     for true do
         if lexer_index program_length == do
             arr_ops { OP_EOF "OP_EOF" } append -> arr_ops
@@ -115,12 +121,33 @@ block lexer do
             if lexer_peak "=" == do
                 lexer_advance
                 arr_ops { OP_NOT_EQUALS "!=" } append -> arr_ops
+            elif lexer_peak "6" == do
+                lexer_advance
+                program lexer_index read -> lexer_peak
+                if lexer_peak "4" == do
+                    lexer_advance
+                    arr_ops { OP_WRITE_64 "!64" } append -> arr_ops
+                else
+                    "syntax error ... \n" print exit
+                end
             else
                 arr_ops { OP_WRITE "!" } append -> arr_ops
             end
         elif lexer_char "@" == do
             lexer_advance
-            arr_ops { OP_READ "@" } append -> arr_ops
+            program lexer_index read -> lexer_peak
+            if lexer_peak "6" == do
+                lexer_advance
+                program lexer_index read -> lexer_peak
+                if lexer_peak "4" == do
+                    lexer_advance
+                    arr_ops { OP_READ_64 "@64" } append -> arr_ops
+                else
+                    "syntax error ... \n" print exit
+                end
+            else
+                arr_ops { OP_READ "@" } append -> arr_ops
+            end
         elif lexer_char ">" == do
             lexer_advance
             program lexer_index read -> lexer_peak
@@ -265,17 +292,20 @@ block lexer do
                 arr_ops { OP_EXIT lexer_id } append -> arr_ops
             elif lexer_id "rot" == do
                 arr_ops { OP_ROT lexer_id } append -> arr_ops
+            elif lexer_id "include" == do
+                arr_ops { OP_INCLUDE lexer_id } append -> arr_ops
             else
                 arr_ops { OP_VAR lexer_id } append -> arr_ops
             end
         end
     end
+    arr_ops
 end
 
 # variables { { VarName type } { VarName type } { VarName type } ... }
 {} -> variables
 
-block parse do
+block parse do -> arr_ops
     # `do` `end` `if` `else`
     # { op token , op value , where to jump }
 
@@ -290,7 +320,11 @@ block parse do
         if length i == do
             break
         end
-        arr_ops i read -> op
+        try
+            arr_ops i read -> op
+        except IndexError do
+            break
+        end
         if op 0 read OP_IF == do
             addr_stack i append -> addr_stack
         elif op 0 read OP_ELSE == do
@@ -324,9 +358,19 @@ block parse do
             else
                 "unexpected token type" print op 0 read println exit
             end
-        end
+        elif op 0 read OP_INCLUDE == do
+            i inc -> i
+            arr_ops i read -> op
+            if op 0 read OP_STR == do
+                arr_ops { OP_INCLUDE "include" op 1 read  } i replace -> arr_ops
+                arr_ops i 1 - remove -> arr_ops
+            else
+                "error: unexpected token at ...\n" print exit
+            end
+        end 
         i inc -> i
     end
+    arr_ops
 end
 
 # ---------------------------
@@ -335,18 +379,10 @@ end
 
 "torth.asm" fopen -> F
 F ftruncate
-0 -> stack_size
+0 -> asm_addr
+{} -> strings
 
-block inc_stack_size do
-    stack_size 1 + -> stack_size # decrement the stack size.
-end
-
-block dec_stack_size do
-    stack_size 1 - -> stack_size # decrement the stack size.
-end
-
-block asm_gen do -> arr_ops
-
+block asm_head do
     "GLOBAL _main\n\n" F fwrite
 
     "section .text\n\n" F fwrite
@@ -399,12 +435,12 @@ block asm_gen do -> arr_ops
     "global start\n\n" F fwrite
 
     "_main:\n" F fwrite
+end
 
+block asm_gen do -> arr_ops
     arr_ops len -> length
-    {} -> strings
-
-    0 for dup length < do -> i
-        "addr_" i itoa ":" "\n" + + + F fwrite
+    asm_addr for dup length < do -> i
+        "addr_" asm_addr itoa ":" "\n" + + + F fwrite
 
         arr_ops i read -> op
         op 0 read -> op_type
@@ -468,6 +504,28 @@ block asm_gen do -> arr_ops
             "    pop rbx\n" F fwrite
             "    pop rax\n" F fwrite
             "    mov [rax], bl\n\n" F fwrite
+        elif op_type OP_WRITE_64 == do
+            "    pop rax\n" F fwrite
+            "    pop rbx\n" F fwrite
+            "    mov [rax], rbx\n\n" F fwrite
+        elif op_type OP_READ_64 == do
+            "    pop rax\n" F fwrite
+            "    xor rbx, rbx\n" F fwrite
+            "    mov rbx, [rax]\n" F fwrite
+            "    push rbx\n\n" F fwrite
+        elif op_type OP_INCLUDE == do
+            "examples/rule110.torth" fopen -> ProgramF
+            ProgramF fread -> program
+            ProgramF fclose
+
+            program lexer_init -> include_arr_ops
+
+            include_arr_ops lexer -> include_arr_ops
+
+            include_arr_ops parse -> include_arr_ops
+
+            include_arr_ops asm_gen -> asm_addr
+            asm_addr
         elif op_type OP_ROT == do
             "    pop rax\n" F fwrite
             "    pop rbx\n" F fwrite
@@ -570,8 +628,35 @@ block asm_gen do -> arr_ops
                 exit
             end
         end
+        asm_addr 1 + -> asm_addr
         i inc
     end
+    asm_addr
+end
+
+
+# ------------------
+# ------ main ------
+# ------------------
+
+"" -> program
+
+block main do
+    # read program from file
+    "main.torth" fopen -> ProgramF
+    ProgramF fread -> program
+    ProgramF fclose
+
+    program lexer_init -> arr_ops
+
+    arr_ops lexer -> arr_ops
+
+    arr_ops parse -> arr_ops
+
+    asm_head
+
+    arr_ops asm_gen
+
     "    mov    rax, 0x2000001 ; exit\n" F fwrite
     "    mov    rdi, 0\n" F fwrite
     "    syscall\n\n" F fwrite
@@ -593,40 +678,10 @@ block asm_gen do -> arr_ops
         "string_" F fwrite strings_i itoa F fwrite
         strings_i inc
     end
-end
-
-
-# ------------------
-# ------ main ------
-# ------------------
-
-"" -> program
-
-block main do
-    # read program from file
-    "main.torth" fopen -> ProgramF
-    ProgramF fread -> program
-    ProgramF fclose
-
-    program lexer_init
-
-    lexer
-
-    parse
-
-    arr_ops # println
-    
-    asm_gen
 
     F fclose # close file
     
     free
-
-    # check for unhandled data
-    #if stack_size 0 > do
-    #    "Error: unhandled <int> type element on the stack." println
-    #    exit
-    #end
 end
 
 main
