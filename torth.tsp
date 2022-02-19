@@ -646,8 +646,15 @@ end
 
 block main do
     # read program from file
-    "main.torth" fopen -> ProgramF
+    if argv len 3 < do
+        "[Usage]\n<Tsharp exe file name> torth.tsp <filename>.torth\n" print
+        exit
+    end
+
+    argv 2 read fopen -> ProgramF
+
     ProgramF fread -> program
+
     ProgramF fclose
 
     program lexer_init -> arr_ops
@@ -666,6 +673,7 @@ block main do
     "section .bss\n" F fwrite
     "    mem: resb 50000\n" F fwrite
     "section .data" F fwrite
+
     0 for dup strings len < do -> strings_i
         "\n    string_" F fwrite strings_i itoa F fwrite
         ': db ' F fwrite
