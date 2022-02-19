@@ -604,7 +604,10 @@ block asm_gen do -> arr_ops
             "    sub    rbx, rax\n" F fwrite
             "    push   rbx\n\n" F fwrite
         elif op_type OP_MUL == do
-            false assert "not implemented yet"
+            "    pop rax\n" F fwrite
+            "    pop rbx\n" F fwrite
+            "    mul rbx\n" F fwrite
+            "    push rax\n\n" F fwrite
         elif op_type OP_DIV == do
             false assert "not implemented yet"
         elif op_type OP_IS_EQUALS == do
@@ -680,6 +683,15 @@ block main do
     end
 
     F fclose # close file
+
+    try
+        "/usr/local/Cellar/nasm/2.15.05/bin/nasm -f macho64 torth.asm" system
+        "[nasm] nasm -f macho64 torth.asm\n" print
+        "ld torth.o -o torth -macosx_version_min 11.4 -L /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib -lSystem -no_pie" system
+        "[ld] torth.o -o torth\n" print
+    except CommandError do
+        "[ERROR] nasm error\n" print
+    end
     
     free
 end
