@@ -17,7 +17,7 @@ end
 
 
 ```
-$ ./main torth.tsp
+$ <Tsharp executable> torth.tsp main.torth
 
 $ nasm -f macho64 torth.asm
 
