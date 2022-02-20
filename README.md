@@ -4,14 +4,10 @@ It's like Forth, Porth but written in T#.
 
 
 ## Usage
-```python
-# file main.tsp
+```s
+# file main.torth
 
-10 20 + print
-
-10 10 == if
-    100 print
-end
+"Hello World\n" 1 0x2000004 syscall
 
 ```
 
