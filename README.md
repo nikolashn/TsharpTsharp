@@ -17,13 +17,13 @@ end
 
 
 ```
-$ ./main tsharp.tsp
+$ ./main torth.tsp
 
-$ nasm -f macho64 tsharp.asm
+$ nasm -f macho64 torth.asm
 
-$ ld tsharp.o -o tsharp -macosx_version_min 11.4 -L /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib -lSystem
+$ ld torth.o -o torth -macosx_version_min 11.4 -L /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib -lSystem
 
-$ ./tsharp
+$ ./torth
 ```
 
 ```
