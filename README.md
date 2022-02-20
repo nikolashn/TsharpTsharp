@@ -4,10 +4,9 @@ It's like Forth, Porth but written in T#.
 
 
 ## Usage
-```s
-# file main.torth
+```assembly
 
-"Hello World\n" 1 0x2000004 syscall
+"Hello World!\n" 1 0x2000004 syscall
 
 ```
 
